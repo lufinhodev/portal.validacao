@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Portal Validação | Assinaturas Eletrônicas</title>
+    
+    <!-- SDKs do Firebase CORRIGIDOS para o Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- FUNDO ANIMADO E PRE-LOADER -->
+  <canvas id="plexus-canvas"></canvas>
+  <div id="preloader"><div class="spinner"></div></div>
+
+  <div id="container-principal">
+    
+    <!-- CONTAINER DA ASSINATURA INDIVIDUAL -->
+    <div id="container-assinatura" style="display: none;">
+      <div class="card-dark" role="region" aria-label="Painel de Validação de Documento Eletrônico">
+          <header class="header-dark">
+            <div class="seal-container">
+              <img id="brasao-img" src="brasao.png" class="seal-img-dark" alt="Brasão da Polícia Civil do Estado do Paraná">
+            </div>
+            <div class="title-container">
+              <h1 class="title">Validação de Documento Eletrônico</h1>
+              <div class="url">Polícia Civil do Estado do Paraná</div>
+            </div>
+            <div id="status-badge" class="status-badge-dark" role="alert">
+              <!-- Conteúdo do status inserido via JS -->
+            </div>
+          </header>
+    
+          <main class="main-dark">
+            <h2>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Verificação de Integridade e Autenticidade
+            </h2>
+            <p>A integridade criptográfica deste documento foi confirmada. A assinatura digital é válida e vinculada ao processo através do código de verificação unívoco abaixo.</p>
+    
+            <div class="identifier">
+              <div id="signatureId" class="id-box"></div>
+              <button id="copy-button" class="copy-btn" aria-label="Copiar Código de Verificação">
+                <span id="copy-button-content">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </span>
+              </button>
+            </div>
+          </main>
+          
+          <div class="meta-grid">
+            <div class="meta-item">
+              <strong>Referência Processual:</strong>
+              <span id="inquerito-ref"></span>
+            </div>
+            <div class="meta-item">
+              <strong>Autoridade(s) Certificadora(s):</strong>
+              <div id="autoridades-lista">
+                <!-- Conteúdo inserido dinamicamente pelo script.js -->
+              </div>
+            </div>
+          </div>
+          
+          <footer class="footer-dark">
+            Emitido em: <span id="timestamp-footer"></span> | SIVEP-PR
+          </footer>
+      </div>
+    </div>
+
+    <!-- PAINEL DE CONTROLE -->
+    <div id="lista-assinaturas" class="dashboard-container" style="display: none; opacity: 0;">
+      <header class="page-header"><img src="brasao.png" class="seal-img" alt="Brasão da Polícia Civil"><div class="header-text"><h1>Painel de Validação de Documentos</h1><p>Consulte a autenticidade de assinaturas digitais registradas no sistema.</p></div></header><div class="stat-cards-container"><div class="stat-card"><h4>Total de Registros</h4><span id="total-assinaturas">0</span></div><div class="stat-card"><h4>Assinaturas Válidas</h4><span id="assinaturas-validas">0</span></div><div class="stat-card"><h4>Assinaturas Expiradas</h4><span id="assinaturas-expiradas">0</span></div></div><main class="content-card"><div class="search-section"><div class="search-wrapper"><svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg><input type="text" id="campo-busca" placeholder="Buscar por referência ou nome da autoridade..."><button id="clear-search-btn" class="clear-search-btn" style="display: none;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div><div class="table-wrapper"><table><thead><tr><th>Ref. Processual</th><th>Assinado Por</th><th>Status</th><th>Ação</th></tr></thead><tbody id="corpo-tabela"></tbody></table><div id="no-results-message" class="no-results-message" style="display: none;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM13.5 10.5h-6" /></svg> Nenhum registro encontrado para a sua busca.</div></div></main>
+    </div>
+
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="script.js"></script>
+</body>
+</html>

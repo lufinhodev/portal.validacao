@@ -3,50 +3,513 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Portal Validação | Assinaturas Eletrônicas</title>
+    <title>SIVEP | Validação Digital PCPR</title>
     
-    <!-- SDKs do Firebase CORRIGIDOS para o Realtime Database -->
+    <!-- SDKs do Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <!-- Fontes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Montserrat:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+
+/* --- FORÇAR VISUAL DE BOTÃO NA TABELA --- */
+
+/* Seleciona qualquer link (a) dentro das células (td) da tabela */
+#lista-assinaturas table td a {
+    display: inline-flex;       /* Permite definir largura/altura */
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    
+    /* Tamanho e Espaçamento */
+    padding: 6px 16px;
+    min-width: 100px;           /* Tamanho mínimo para ficarem uniformes */
+    
+    /* Cores e Bordas */
+    background: rgba(197, 160, 89, 0.1); /* Fundo levemente dourado */
+    border: 1px solid var(--pcpr-gold);
+    color: var(--pcpr-gold) !important; /* Força a cor dourada */
+    border-radius: 4px;
+    
+    /* Texto */
+    text-decoration: none !important; /* Remove o sublinhado azul padrão */
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
+    /* Animação */
+    transition: all 0.3s ease;
+}
+
+/* Efeito ao passar o mouse */
+#lista-assinaturas table td a:hover {
+    background-color: var(--pcpr-gold);
+    color: #0a0a0a !important; /* Texto fica preto */
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Adiciona um ícone de "olho" via CSS (sem mexer no HTML/JS) */
+#lista-assinaturas table td a::before {
+    content: '';
+    display: block;
+    width: 14px;
+    height: 14px;
+    /* Ícone de olho em SVG codificado direto no CSS */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23c5a059' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z' /%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    transition: all 0.3s ease;
+}
+
+/* Muda a cor do ícone para preto quando passar o mouse */
+#lista-assinaturas table td a:hover::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23000000' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z' /%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' /%3E%3C/svg%3E");
+}
+
+        /* --- VARIÁVEIS E RESET --- */
+        :root {
+            --pcpr-black: #0a0a0a;
+            --pcpr-dark-grey: #1c1c1c;
+            --pcpr-gold: #c5a059; /* Tom dourado do brasão */
+            --pcpr-blue: #003366;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --glass-bg: rgba(20, 20, 20, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --blur: 15px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--pcpr-black);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- BACKGROUND VIDEO --- */
+        .video-bg {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1;
+            opacity: 0.4; /* Escurece o vídeo para o texto aparecer */
+            object-fit: cover;
+            filter: grayscale(80%) contrast(120%); /* Estilo mais sério/policial */
+        }
+        
+        .bg-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.9) 100%);
+            z-index: -1;
+        }
+
+        /* --- BARRA INSTITUCIONAL TOPO --- */
+        .gov-bar {
+            background: linear-gradient(90deg, #111, #333);
+            border-bottom: 2px solid var(--pcpr-gold);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            z-index: 100;
+            position: relative;
+        }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        #container-principal {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh; /* Ajuste considerando a barra do topo */
+            padding: 20px;
+            position: relative;
+        }
+
+        /* --- ESTILO GLASSMORPHISM (VIDRO) --- */
+        .card-dark, .dashboard-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* --- CARTÃO DE ASSINATURA INDIVIDUAL --- */
+        #container-assinatura {
+            width: 100%;
+            max-width: 550px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .header-dark {
+            text-align: center;
+            padding: 30px 20px 10px;
+            position: relative;
+        }
+
+        .seal-img-dark {
+            width: 100px;
+            height: auto;
+            filter: drop-shadow(0 0 10px rgba(197, 160, 89, 0.3)); /* Brilho dourado no brasão */
+            margin-bottom: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .seal-img-dark:hover { transform: scale(1.05); }
+
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .url {
+            color: var(--pcpr-gold);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        /* --- BADGE DE STATUS --- */
+        .status-badge-dark {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-top: 10px;
+        }
+        
+        /* Classes que o JS deve adicionar */
+        .status-valid { color: var(--success); border-color: var(--success); box-shadow: 0 0 15px rgba(46, 204, 113, 0.2); }
+        .status-invalid { color: var(--danger); border-color: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.2); }
+
+        /* --- CONTEÚDO PRINCIPAL --- */
+        .main-dark {
+            padding: 20px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden; /* Para o efeito de scanner */
+        }
+
+        /* EFEITO DE SCANNER LASER */
+        .scan-line {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--success), transparent);
+            box-shadow: 0 0 15px var(--success);
+            opacity: 0.6;
+            animation: scan 3s infinite linear;
+            pointer-events: none;
+        }
+
+        .main-dark h2 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+
+        .main-dark p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        /* --- CAIXA DE CÓDIGO --- */
+        .identifier {
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.4);
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .id-box {
+            flex-grow: 1;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--pcpr-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 1px;
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover { background: var(--pcpr-gold); color: #000; }
+
+        /* --- META DADOS --- */
+        .meta-grid {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 20px 30px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .meta-item {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .meta-item strong { color: #fff; font-size: 0.8rem; text-transform: uppercase; opacity: 0.7; }
+        .meta-item span, .meta-item div { color: #ddd; }
+
+        .footer-dark {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.75rem;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* --- DASHBOARD --- */
+        .dashboard-container {
+            width: 95%;
+            max-width: 1000px;
+            padding: 30px;
+            /* display: none; -> Mudei apenas para testes, se quiser ver sem JS descomente a linha abaixo e comente o display:none */
+            display: none; 
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+        }
+        
+        .header-text h1 { font-family: 'Montserrat', sans-serif; font-size: 1.8rem; }
+        .header-text p { color: var(--text-secondary); }
+
+        /* Stats Cards */
+        .stat-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.03);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--pcpr-gold);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); }
+        .stat-card h4 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px; }
+        .stat-card span { font-size: 2rem; font-weight: 700; color: #fff; }
+
+        /* Search & Table */
+        .search-wrapper {
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .search-wrapper input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            width: 100%;
+            margin-left: 10px;
+            outline: none;
+            font-size: 1rem;
+        }
+        
+        .search-icon { width: 20px; color: var(--pcpr-gold); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #ddd; vertical-align: middle; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* ========================================================== */
+        /* ===   NOVO ESTILO DO BOTÃO VISUALIZAR (MELHORADO)   === */
+        /* ========================================================== */
+        .btn-visualizar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background-color: transparent; /* Fundo transparente */
+            border: 1px solid var(--pcpr-gold); /* Borda Dourada */
+            color: var(--pcpr-gold); /* Texto Dourado */
+            border-radius: 4px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-visualizar:hover {
+            background-color: var(--pcpr-gold);
+            color: var(--pcpr-black); /* Contraste preto no hover */
+            box-shadow: 0 0 15px rgba(197, 160, 89, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .btn-visualizar svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.5;
+        }
+        /* ========================================================== */
+
+
+        /* --- ANIMAÇÕES KEYFRAMES --- */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Preloader */
+        #preloader {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: #000; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(197, 160, 89, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--pcpr-gold);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .page-header { flex-direction: column; text-align: center; }
+            .dashboard-container { padding: 15px; }
+            th, td { font-size: 0.8rem; padding: 10px; }
+            .btn-visualizar span { display: none; } /* Em mobile, mostra só o ícone se quiser */
+            .btn-visualizar { padding: 8px; }
+        }
+    </style>
 </head>
 
 <body>
 
-  <!-- FUNDO ANIMADO E PRE-LOADER -->
-  <canvas id="plexus-canvas"></canvas>
+  <!-- BARRA GOVERNAMENTAL -->
+  <div class="gov-bar">
+      <span>Governo do Estado do Paraná</span>
+      <span>Secretaria de Segurança Pública</span>
+  </div>
+
+  <!-- VIDEO BACKGROUND -->
+  <video autoplay muted loop id="bg-video" class="video-bg">
+      <source src="https://cdn.pixabay.com/video/2019/04/20/22908-331623838_tiny.mp4" type="video/mp4">
+  </video>
+  <div class="bg-overlay"></div>
+
+  <!-- PRE-LOADER -->
   <div id="preloader"><div class="spinner"></div></div>
 
   <div id="container-principal">
     
-    <!-- CONTAINER DA ASSINATURA INDIVIDUAL -->
+    <!-- CONTAINER DA ASSINATURA INDIVIDUAL (Invisível inicialmente) -->
     <div id="container-assinatura" style="display: none;">
       <div class="card-dark" role="region" aria-label="Painel de Validação de Documento Eletrônico">
+          
+          <div class="scan-line"></div>
+
           <header class="header-dark">
             <div class="seal-container">
               <img id="brasao-img" src="brasao.png" class="seal-img-dark" alt="Brasão da Polícia Civil do Estado do Paraná">
             </div>
             <div class="title-container">
-              <h1 class="title">Validação de Documento Eletrônico</h1>
-              <div class="url">Polícia Civil do Estado do Paraná</div>
+              <h1 class="title">Validação Digital</h1>
+              <div class="url">Polícia Civil do Paraná • SIVEP</div>
             </div>
             <div id="status-badge" class="status-badge-dark" role="alert">
-              <!-- Conteúdo do status inserido via JS -->
+              <span style="opacity:0.5;">Aguardando verificação...</span>
             </div>
           </header>
     
           <main class="main-dark">
             <h2>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              Verificação de Integridade e Autenticidade
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pcpr-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Autenticidade Documental
             </h2>
-            <p>A integridade criptográfica deste documento foi confirmada. A assinatura digital é válida e vinculada ao processo através do código de verificação unívoco abaixo.</p>
+            <p>O documento digital foi processado. A chave criptográfica abaixo garante a imutabilidade e autoria deste registro oficial.</p>
     
             <div class="identifier">
               <div id="signatureId" class="id-box"></div>
-              <button id="copy-button" class="copy-btn" aria-label="Copiar Código de Verificação">
+              <button id="copy-button" class="copy-btn" aria-label="Copiar Hash">
                 <span id="copy-button-content">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 </span>
@@ -56,31 +519,116 @@
           
           <div class="meta-grid">
             <div class="meta-item">
-              <strong>Referência Processual:</strong>
-              <span id="inquerito-ref"></span>
+              <strong>Referência do Inquérito/Processo:</strong>
+              <span id="inquerito-ref" style="font-family: monospace; font-size: 1rem; color: #fff;">-</span>
             </div>
             <div class="meta-item">
               <strong>Autoridade(s) Certificadora(s):</strong>
-              <div id="autoridades-lista">
-                <!-- Conteúdo inserido dinamicamente pelo script.js -->
-              </div>
+              <div id="autoridades-lista"></div>
             </div>
           </div>
           
           <footer class="footer-dark">
-            Emitido em: <span id="timestamp-footer"></span> | SIVEP-PR
+            <img src="https://www.policiacivil.pr.gov.br/themes/custom/pcpr_theme/logo.png" style="height: 20px; opacity: 0.5; margin-bottom: 5px; display:block; margin: 0 auto 5px auto;">
+            Carimbo de Tempo: <span id="timestamp-footer"></span> | Sistema Verificador PCPR
           </footer>
       </div>
     </div>
 
-    <!-- PAINEL DE CONTROLE -->
-    <div id="lista-assinaturas" class="dashboard-container" style="display: none; opacity: 0;">
-      <header class="page-header"><img src="brasao.png" class="seal-img" alt="Brasão da Polícia Civil"><div class="header-text"><h1>Painel de Validação de Documentos</h1><p>Consulte a autenticidade de assinaturas digitais registradas no sistema.</p></div></header><div class="stat-cards-container"><div class="stat-card"><h4>Total de Registros</h4><span id="total-assinaturas">0</span></div><div class="stat-card"><h4>Assinaturas Válidas</h4><span id="assinaturas-validas">0</span></div><div class="stat-card"><h4>Assinaturas Expiradas</h4><span id="assinaturas-expiradas">0</span></div></div><main class="content-card"><div class="search-section"><div class="search-wrapper"><svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg><input type="text" id="campo-busca" placeholder="Buscar por referência ou nome da autoridade..."><button id="clear-search-btn" class="clear-search-btn" style="display: none;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div><div class="table-wrapper"><table><thead><tr><th>Ref. Processual</th><th>Assinado Por</th><th>Status</th><th>Ação</th></tr></thead><tbody id="corpo-tabela"></tbody></table><div id="no-results-message" class="no-results-message" style="display: none;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM13.5 10.5h-6" /></svg> Nenhum registro encontrado para a sua busca.</div></div></main>
+    <!-- PAINEL DE CONTROLE (DASHBOARD) -->
+    <!-- NOTA: Está como display:none. Se quiser visualizar para testes, mude para display:block -->
+    <div id="lista-assinaturas" class="dashboard-container" style="display: none;">
+      <header class="page-header">
+          <img src="brasao.png" class="seal-img-dark" style="width: 60px; margin-bottom: 0;" alt="Brasão da Polícia Civil">
+          <div class="header-text">
+              <h1>Banco de Dados de Assinaturas</h1>
+              <p>Consulte a autenticidade e status dos registros digitais.</p>
+          </div>
+      </header>
+      
+      <div class="stat-cards-container">
+          <div class="stat-card">
+              <h4>Total de Registros</h4>
+              <span id="total-assinaturas">0</span>
+          </div>
+          <div class="stat-card" style="border-left-color: var(--success);">
+              <h4>Assinaturas Válidas</h4>
+              <span id="assinaturas-validas">0</span>
+          </div>
+          <div class="stat-card" style="border-left-color: var(--danger);">
+              <h4>Expiradas / Revogadas</h4>
+              <span id="assinaturas-expiradas">0</span>
+          </div>
+      </div>
+
+      <main class="content-card" style="background: transparent; border: none; box-shadow: none;">
+          <div class="search-section">
+              <div class="search-wrapper">
+                  <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                  <input type="text" id="campo-busca" placeholder="Buscar por IP, Referência ou Delegado...">
+                  <button id="clear-search-btn" class="clear-search-btn" style="display: none; background: none; border:none; color: #fff; cursor: pointer;">
+                      <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+              </div>
+          </div>
+          
+          <div class="table-wrapper" style="overflow-x: auto;">
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Ref. Processual</th>
+                          <th>Assinado Por</th>
+                          <th>Status</th>
+                          <th>Ação</th>
+                      </tr>
+                  </thead>
+                  <tbody id="corpo-tabela">
+                      <!-- 
+                        IMPORTANTE: Se o seu JS (script.js) apaga este conteúdo, 
+                        você precisará atualizar o JS para inserir a classe 'btn-visualizar' e o ícone SVG.
+                        Abaixo segue um exemplo estático de como o botão fica:
+                      -->
+                      <tr>
+                        <td>IP-098/2023</td>
+                        <td>Del. Almeida</td>
+                        <td><span class="status-badge-dark status-valid" style="font-size: 0.7rem; padding: 4px 10px;">Válido</span></td>
+                        <td>
+                            <!-- AQUI ESTÁ O NOVO BOTÃO -->
+                            <a href="#" class="btn-visualizar">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Visualizar
+                            </a>
+                        </td>
+                      </tr>
+                  </tbody>
+              </table>
+              <div id="no-results-message" class="no-results-message" style="display: none; padding: 20px; text-align: center; color: #999;">
+                  <svg style="width: 40px; margin-bottom: 10px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM13.5 10.5h-6" /></svg> 
+                  <br>Nenhum registro encontrado.
+              </div>
+          </div>
+      </main>
     </div>
 
   </div>
 
   <div id="toast-container"></div>
+  
   <script src="script.js"></script>
+  
+  <script>
+    window.addEventListener('load', () => {
+        const preloader = document.getElementById('preloader');
+        if(preloader) {
+            setTimeout(() => {
+                preloader.style.opacity = '0';
+                setTimeout(() => { preloader.style.display = 'none'; }, 500);
+            }, 1000); 
+        }
+    });
+  </script>
 </body>
 </html>
